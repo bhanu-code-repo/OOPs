@@ -1,4 +1,3 @@
-import pyotp
 import dash_bootstrap_components as dbc
 from dash import Dash, html, dcc, Input, Output, State, callback_context, no_update
 
@@ -46,16 +45,7 @@ def render_home_layout(account_number):
     return home_layout
 
 
-# Create a TOTP instance with a shared secret
-shared_secret = pyotp.random_base32()
-totp = pyotp.TOTP(shared_secret)
-
-def generate_otp():
-    return totp.now()
-
 def render_add_account_layout():
-    
-    otp = generate_otp()
     
     add_account_layout = html.Div([
         html.Div(className='container', children=[
@@ -63,7 +53,7 @@ def render_add_account_layout():
             dcc.Input(id='new-account-number', type='text', placeholder='New Account Number', className='form-control mb-3'),
             dcc.Input(id='new-pin', type='password', placeholder='New PIN', className='form-control mb-3'),
             dcc.Input(id='confirm-new-pin', type='password', placeholder='Confirm New PIN', className='form-control mb-3'),
-            dcc.Input(id='otp', type='text', value=otp, placeholder='OTP', className='form-control mb-3'),
+            dcc.Input(id='otp', type='text', placeholder='OTP', className='form-control mb-3'),
             html.Div([
                 html.Button([html.I(className='fas fa-user-plus'), ' Add Account'], id='add-new-account-button', className='btn btn-success mr-2'),
                 html.Button([html.I(className='fas fa-arrow-left'), ' Back to Login'], id='back-to-login-button', className='btn btn-secondary')
@@ -133,6 +123,28 @@ def login(login_clicks, add_account_clicks, account_number, pin):
 
     return no_update, no_update
 
+
+def validate_otp(otp):
+    # Implement your OTP validation logic here
+    # Return True if OTP is valid, False otherwise
+    # You can use your own OTP generation and validation process
+    return True  # Placeholder, replace with actual OTP validation logic
+
+def validate_inputs(new_account_number, new_pin, confirm_new_pin, otp):
+    print(new_account_number, len(new_pin), len(confirm_new_pin), otp)
+    if new_account_number is None:
+        return False
+    if not new_account_number.isdigit() or len(new_account_number) != 9:
+        return False
+    if new_pin is None or confirm_new_pin is None or new_pin != confirm_new_pin:
+        return False
+    if len(new_pin) < 4 and len(confirm_new_pin) < 4:
+        return False
+    if not validate_otp(otp):
+        return False
+    
+    return True
+
 @app.callback(
     Output('result-add-account', 'children'),
     Input('add-new-account-button', 'n_clicks'),
@@ -147,6 +159,15 @@ def add_account(add_account_clicks, back_clicks, new_account_number, new_pin, co
     button_id = ctx.triggered[0]['prop_id'].split('.')[0]
     
     if button_id == 'add-new-account-button':
+        
+        if account_manager.get_account(new_account_number):
+            return dbc.Alert("Error: Account number already exists.", color="danger")
+        
+        if not validate_inputs(new_account_number, new_pin, confirm_new_pin, otp):
+            return dbc.Alert("Error: Invalid input or mismatch.", color="danger")
+        
+        # Add the new account
+        account_manager.add_account(new_account_number, new_pin)
         return dcc.Location(pathname='/', id='button-add-new-account')
     elif button_id == 'back-to-login-button':
         return dcc.Location(pathname='/', id='back-button-to-login')
