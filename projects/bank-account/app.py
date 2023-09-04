@@ -180,8 +180,7 @@ def add_account(add_account_clicks, back_clicks, new_account_number, new_pin, co
     Input('withdraw-button', 'n_clicks'),
     Input('deposit-button', 'n_clicks'),
     Input('logout-button', 'n_clicks'),
-    State('amount', 'value'),
-    Input('back-to-login-button', 'n_clicks')
+    State('amount', 'value')
 )
 def perform_action(balance_clicks, withdraw_clicks, deposit_clicks, logout_clicks, amount):
     ctx = callback_context
